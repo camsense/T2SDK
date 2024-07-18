@@ -83,9 +83,18 @@ extern "C" {
 
     DLL_EXPORT void setSDKD2M7SubComp(bool bComp);
 
-    DLL_EXPORT void setSDKT2RotationalSpeed(int iRotationalSpeed);
+    DLL_EXPORT bool setSDKT2RotationalSpeed(int iRotationalSpeed);
 
     DLL_EXPORT void setSDKT2LidarStart(bool bStarted);
+
+    /*
+     * @param iSmoothMode
+     *      0: 不启用T2平滑算法
+     *      1: 均值平滑
+     *      2: 权重平滑
+     *      3: 高斯平滑
+     */
+    DLL_EXPORT void setSDKT2PointsSmooth(int iSmoothMode);
 
 #ifdef __cplusplus
 };

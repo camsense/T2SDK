@@ -45,3 +45,10 @@ Tutorial:
     LD        -> last angle info of single-turn data packages
     TC        -> time cost of single-turn data packages
     stamp     -> data stamp of single-turn data packages (increasing by 1)
+
+4. Compile the dynamic library (optional)
+    In the ./src/base/CMakeLists.txt file, find
+    ```
+    ADD_LIBRARY(lidar STATIC ${LIDAR_SRC})
+    ```
+    Change `STATIC` to `SHARED`, and the compiled file is a dynamic library file.

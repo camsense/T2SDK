@@ -75,11 +75,12 @@ void sdkCallBackFunPointCloud(LstPointCloud lstG)
 		//{
 
 			memset(buff, 0, 128);
-			sprintf(buff, "%lld,%0.3f,%0.3f,%d,%d,%d,%d\n",
+			sprintf(buff, "%lld,%0.3f,%0.3f,%d,%d,%d,%d,%d\n",
 				sInfo.u64TimeStampNs, 
 				sInfo.dAngle, 
-				sInfo.dAngleRaw, 
+				sInfo.dAngleRaw,
 				sInfo.u16Dist,
+                sInfo.u16DistRaw,
 				sInfo.bValid,
 				sInfo.u16Speed, 
 				sInfo.u16Gray);
@@ -303,8 +304,8 @@ int main()
     int iRotationalSpeed {360};
     bool isGetCircleData {true};
     if (strLidarModel == T200){
-        printf("Please set Lidar target speed([300, 480]):\n");
-        std::cin >> iRotationalSpeed;
+//        printf("Please set Lidar target speed([300, 480]):\n");
+//        std::cin >> iRotationalSpeed;
         printf("Please set whether to read data by circle{1: true, 0: false}:\n");
         std::cin >> isGetCircleData;
     }
@@ -333,19 +334,20 @@ int main()
         std::string s;
         std::cin >> s;
         setSDKT2LidarStart(true);
+        setSDKT2PointsSmooth(0);//设置单圈点云平滑算法
     }else {
         setSDKLidarPowerOn(true);//通知camsense SDK 雷达已经上电
         setSDKPointCloudLattice(true);
     }
 
 
-	if (strLidarModel == "X2MF")
-	{
-		setSDKLidarLowSpeed(true);
-	}else if (strLidarModel == T200){
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        setSDKT2RotationalSpeed(iRotationalSpeed);
-    }
+//	if (strLidarModel == "X2MF")
+//	{
+//		setSDKLidarLowSpeed(true);
+//	}else if (strLidarModel == T200){
+//        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+//        setSDKT2RotationalSpeed(iRotationalSpeed);
+//    }
 
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));

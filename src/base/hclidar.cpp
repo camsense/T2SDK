@@ -784,7 +784,9 @@ BOOL HCLidar::initialize(const char* chPort, const char* chLidarModel,int iBaud,
 		 while (!m_bReady)
 			 m_cvInit.wait(lck);*/
 	}
-    
+
+    m_sT2Smooth.setGuassSmoothParameter(smoothParam.KernelSize);
+    m_sT2Smooth.setWeightSmoothParameter(smoothParam.KernelSize, smoothParam.Poly);
 
 	LOG_INFO("Init complete\n");
 
@@ -2733,7 +2735,11 @@ bool HCLidar::getOneCircleData()
 
 	if (bHadOne)
 	{
-		//std::stable_sort(m_lstCircle.begin(), m_lstCircle.end(), newComparator);		
+		//std::stable_sort(m_lstCircle.begin(), m_lstCircle.end(), newComparator);
+        // T2 Smooth
+        if (m_strLidarModel.find("T2") != std::string::npos){
+            smoothPointCloud(m_lstCircle, m_iSmoothMode, m_sT2Smooth);
+        }
 	}
 	else
 	{
@@ -3237,11 +3243,11 @@ bool HCLidar::getT2SNInfo(std::vector<UCHAR> &lstBuff) {
     return false;
 }
 
-void HCLidar::setT2RotationalSpeed(int iRotationalSpeed) {
+bool HCLidar::setT2RotationalSpeed(int iRotationalSpeed) {
 
     if (m_strLidarModel != T200){
         LOG_ERROR("Only support T2!\n");
-        return;
+        return false;
     }
 
     const int maxSpeed {480};
@@ -3249,7 +3255,7 @@ void HCLidar::setT2RotationalSpeed(int iRotationalSpeed) {
 
     if (iRotationalSpeed < minSpeed || iRotationalSpeed > maxSpeed){
         LOG_ERROR("Speed Illegal, legal interval [%d, %d] \n", minSpeed, maxSpeed);
-        return;
+        return false;
     }
 
     UCHAR paraChecksum {};
@@ -3268,6 +3274,7 @@ void HCLidar::setT2RotationalSpeed(int iRotationalSpeed) {
     writeLen = m_serial.writeData2(command, iLen);
     if (writeLen != iLen){
         LOG_ERROR("Send change speed failed! \n");
+        return false;
     }
     else{
 
@@ -3283,6 +3290,7 @@ void HCLidar::setT2RotationalSpeed(int iRotationalSpeed) {
         double dPointsPerSecond = iT2FPS / dRoundPerSecond;
         m_sAttr.dCirclePoints = dPointsPerSecond;
         m_sAttr.dAngleStep = 360 / dPointsPerSecond;
+        return true;
     }
 
 }
@@ -3293,7 +3301,8 @@ void HCLidar::sendGetT2LidarInfoCommand() {
         return;
     }
 
-    constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF3};
+//    constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF3}; // T2A1
+    constexpr unsigned char command[]{0xA5, 0xA5, 0x54, 0xF3, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x48, 0x5A, 0x5A}; // T2C1
     constexpr int iLen = sizeof(command);
     int writeLen {0};
     unsigned char commandCopy[iLen];
@@ -3317,13 +3326,26 @@ void HCLidar::setT2LidarStart(bool bStarted) {
     m_bT2Stared = bStarted;
 
     if (m_bT2Stared){
-        constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF4};
+//        constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF4}; // T2A1
+        constexpr unsigned char command[]{0xA5, 0xA5, 0x54, 0xF8, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x4D, 0x5A, 0x5A}; // T2C1
+        constexpr unsigned char command_start_transponder[]{0xA5, 0xA5, 0x54, 0xF8, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x4D, 0x5A, 0x5A}; // T2C1
         constexpr int iLen = sizeof(command);
         int writeLen {0};
         unsigned char commandCopy[iLen];
+
+        memcpy(commandCopy, command_start_transponder, iLen);
+        writeLen = m_serial.writeData2(commandCopy, iLen);
+        if (writeLen != iLen){
+            LOG_ERROR("Send start transponder T2 lidar failed! \n");
+        }
+        else {
+            LOG_INFO("Send start transponder T2 lidar succeed! \n");
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
         memcpy(commandCopy, command, iLen);
         writeLen = m_serial.writeData2(commandCopy, iLen);
-
         if (writeLen != iLen){
             LOG_ERROR("Send start T2 lidar failed! \n");
         }
@@ -3334,13 +3356,19 @@ void HCLidar::setT2LidarStart(bool bStarted) {
             setLidarPowerOn(true);
             m_cvT2Started.notify_all();
         }
+
+
     }
     else {
-        constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF5};
-        constexpr int iLen = sizeof(command);
+//        constexpr unsigned char command[]{0xAA, 0x55, 0x07, 0x1A, 0x54, 0x32, 0xF5}; // T2A1
+        constexpr unsigned char command_stop[]{0xA5, 0xA5, 0x54, 0xF9, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x4E, 0x5A, 0x5A}; // T2C1 stop rotate
+        constexpr unsigned char command_cancel[]{0xA5, 0xA5, 0x54, 0xF6, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x4B, 0x5A, 0x5A}; // T2C1 cancel lock rotor
+        constexpr unsigned char command_stop_transponder[]{0xA5, 0xA5, 0x54, 0xFD, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x53, 0x5A, 0x5A}; // T2C1 cancel lock rotor
+
+        constexpr int iLen = sizeof(command_stop);
         int writeLen {0};
         unsigned char commandCopy[iLen];
-        memcpy(commandCopy, command, iLen);
+        memcpy(commandCopy, command_stop, iLen);
         writeLen = m_serial.writeData2(commandCopy, iLen);
 
         if (writeLen != iLen){
@@ -3348,6 +3376,30 @@ void HCLidar::setT2LidarStart(bool bStarted) {
         }
         else {
             LOG_INFO("Send stop T2 lidar succeed! \n");
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        memcpy(commandCopy, command_stop, iLen);
+        writeLen = m_serial.writeData2(commandCopy, iLen);
+
+        if (writeLen != iLen){
+            LOG_ERROR("Send cancel lock rotor T2 lidar failed! \n");
+        }
+        else {
+            LOG_INFO("Send cancel lock rotor T2 lidar succeed! \n");
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        memcpy(commandCopy, command_stop_transponder, iLen);
+        writeLen = m_serial.writeData2(commandCopy, iLen);
+
+        if (writeLen != iLen){
+            LOG_ERROR("Send stop transponder T2 lidar failed! \n");
+        }
+        else {
+            LOG_INFO("Send stop transponder T2 lidar succeed! \n");
             setLidarPowerOn(false);
         }
     }
@@ -3410,4 +3462,8 @@ bool HCLidar::processDataForT2() {
     }
 
     return false;
+}
+
+void HCLidar::setT2PointsSmooth(int iSmoothMode) {
+    m_iSmoothMode = iSmoothMode;
 }

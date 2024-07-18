@@ -18,6 +18,7 @@
 #include <map>
 
 #include "HcData.h"
+#include "T2OutlierRemoval.h"
 
 //typedef std::function<void(int)>              CallBackFunErroCode;
 //typedef std::function<void(tsSDKStatistic)>   CallBackFunSecondInfo;
@@ -199,9 +200,11 @@ public:
 
 	void setLidarLowSpeed(bool bLow = true);
 
-    void setT2RotationalSpeed(int iRotationalSpeed);
+    bool setT2RotationalSpeed(int iRotationalSpeed);
 
     void setT2LidarStart(bool bStarted);
+
+    void setT2PointsSmooth(int iSmoothMode);
 private:
 	
 #if SHARK_ENABLE
@@ -275,6 +278,9 @@ private:
     std::atomic<bool>        m_bHadFact;
     std::atomic<bool>        m_bGetFactTimeOut;
 	std::atomic<bool>        m_bCheckSpeed;
+
+    int                      m_iSmoothMode{0};
+    T2OutlierRemoval         m_sT2Smooth;
 
     bool                     m_bHadInfo;
     bool                     m_bX2ID = true;

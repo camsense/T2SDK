@@ -13,7 +13,7 @@
 
 #include "HcData.h"
 
-#define SDK_VER                    (char*)"V3.3.4"
+#define SDK_VER                    (char*)"V3.3.7"
 
 #define SHARK_ENABLE               0
 
@@ -67,7 +67,7 @@
 #define  D2M7                           "D2M7"
 
 #define  T3B                            "T3B"
-#define  T200                           "T2A1"
+#define  T200                           "T2C1"
 
 #define  PI_HC                          3.141592653589793
 

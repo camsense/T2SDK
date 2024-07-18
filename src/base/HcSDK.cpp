@@ -160,13 +160,18 @@ void setSDKD2M7SubComp(bool bComp)
 //	g_device.setFilter(bfilter);
 //}
 
-void setSDKT2RotationalSpeed(int iRotationalSpeed) {
-    g_device.setT2RotationalSpeed(iRotationalSpeed);
+bool setSDKT2RotationalSpeed(int iRotationalSpeed) {
+    return g_device.setT2RotationalSpeed(iRotationalSpeed);
 }
 
 void setSDKT2LidarStart(bool bStarted) {
     g_device.setT2LidarStart(bStarted);
 }
+
+void setSDKT2PointsSmooth(int iSmoothMode) {
+    g_device.setT2PointsSmooth(iSmoothMode);
+}
+
 #ifdef __cplusplus
 }
 #endif
